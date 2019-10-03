@@ -41,15 +41,12 @@ function getUserDbObject(person){
             for(var j=0; j<person.emails.length; j++){                      
                 if (person.emails[j].type == 'work'){
                     person_obj.email =  person.emails[j].value;
-                    console.log(person_obj.email);
                 }   
             }            
         }
         person_obj.member_since = null;
-        if (person.initialLogin != "undefined"){
-            //var date = new Date(person.initialLogin);                
-            //person_obj.member_since = String(person.initialLogin).substring(0, 19);
-	    person_obj.member_since = person.initialLogin;
+        if (typeof person.initialLogin != "undefined"){
+			person_obj.member_since = person.initialLogin;
         }        
         person_obj.avatar = person.resources.avatar.ref;
         person_obj.profile_image = person.resources.avatar.ref;
@@ -116,11 +113,10 @@ function getUserDbObject(person){
         if (typeof person.location != "undefined"){
             person_obj.location = person.location;
         }
-
         // federated
-            person_obj.jive_federated = "";
+            person_obj.jive_federated = "FALSE";
         if (typeof person.jive.federated != "undefined"){
-            person_obj.jive_federated = (person.jive.federated === "true") ? "TRUE" : "FALSE";
+            person_obj.jive_federated = (person.jive.federated) ? "TRUE" : "FALSE";
         }
         
         //externalIdentities
@@ -133,7 +129,7 @@ function getUserDbObject(person){
 
 
 function sync_users(){
-	var next_page = 'https://'+config.basicUrl + config.peopleApiUrl  + '?fields=name,emails,phoneNumbers,jive,location,initialLogin,profile,displayName&count='+count;
+	var next_page = 'https://'+config.basicUrl + config.peopleApiUrl  + '?fields=name,emails,phoneNumbers,jive,location,initialLogin,profile,displayName&filter=include-disabled(true)&filter=include-external(true)&count='+count;
     //console.log("next_page::", next_page);	
 	async.doWhilst(function (callback) {		
 		//console.log("next_page = ", next_page);
