@@ -118,9 +118,9 @@ function getUserDbObject(person){
         }
 
         // federated
-            person_obj.jive_federated = "FALSE";
+            person_obj.jive_federated = "";
         if (typeof person.jive.federated != "undefined"){
-            person_obj.jive_federated = (person_obj.jive_federated) ? "TRUE" : "FALSE";
+            person_obj.jive_federated = (person.jive.federated === "true") ? "TRUE" : "FALSE";
         }
         
         //externalIdentities
