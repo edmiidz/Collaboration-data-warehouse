@@ -27,6 +27,7 @@ CREATE TABLE `collab_users` (
   `facebook` varchar(128) DEFAULT NULL,
   `jive_federated` enum('FALSE','TRUE') NOT NULL DEFAULT 'TRUE',
   `jive_externalIdentities` text,
+  `jive_instance` varchar(125) NOT NULL,
   `last_fetched_from_api` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
