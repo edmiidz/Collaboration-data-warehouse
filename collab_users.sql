@@ -32,3 +32,5 @@ CREATE TABLE `collab_users` (
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 
+ALTER TABLE `collab_users`
+  ADD PRIMARY KEY (`user_id`,`jive_instance`);

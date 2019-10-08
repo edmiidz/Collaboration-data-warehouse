@@ -124,11 +124,17 @@ function getUserDbObject(person){
         if (typeof person.jive.externalIdentities != "undefined"){
             person_obj.jive_externalIdentities = JSON.stringify(person.jive.externalIdentities);
         }
+
+        person_obj.jive_instance = config.basicUrl;
+
         return person_obj;
 }
 
 
 function sync_users(){
+	var dt = new Date();
+	console.log('Cron Run at : ', dt);
+
 	var next_page = 'https://'+config.basicUrl + config.peopleApiUrl  + '?fields=name,emails,phoneNumbers,jive,location,initialLogin,profile,displayName&filter=include-disabled(true)&filter=include-external(true)&count='+count;
     //console.log("next_page::", next_page);	
 	async.doWhilst(function (callback) {		
