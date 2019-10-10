@@ -206,9 +206,10 @@ function insert_update_users(){
 };
 
 function remove_duplicate_records(){
-		var sql = "DROP TABLE IF EXISTS "+config.connection.table+"; ";
-			sql += " ALTER TABLE "+config.connection.table+"_temp RENAME TO "+config.connection.table;
-        console.log(sql)
+		var sql  =  'INSERT INTO '+config.connection.table+'_temp SELECT * FROM '+config.connection.table+' WHERE jive_instance != "'+config.basicUrl+'";'
+            sql +=  'DROP TABLE IF EXISTS '+config.connection.table+'; ';
+			sql +=  'ALTER TABLE '+config.connection.table+'_temp RENAME TO '+config.connection.table;
+        //console.log(sql);
 
 		connection.query(sql, function(err, result) {
 	      if (err) throw err;
