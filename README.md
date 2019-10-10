@@ -6,7 +6,7 @@ To start, I'm going to add scripts which capture basic information about contrib
 - Node.js
 - MySQL Database
 
-## How to run the scrip
+## How to run the script
 - Clone this repository on your local or server
 - Create Database structure using the collab_users.sql from this repository
 - Rename the file config.example.js to config.js and make appropriate changes 
@@ -14,7 +14,7 @@ To start, I'm going to add scripts which capture basic information about contrib
 - Execute the following node command
   node index.js
 
-## How to run the scrip for multiple instances
+## How to run the script for multiple instances
 To use this script for multiple jive instances and the same database table:
  - Make a copy of the script folder
  - Change the config.js file for your other jive instance
