@@ -13,12 +13,12 @@ To start, I'm going to add scripts which capture basic information about contrib
 - After updating the config.js, you are good to execute the script
 - Execute the following node command
   node index.js
-  
-  ## How to run the scrip for multiple instances
-  To use this script for multiple jive instances and the same database table:
-  - Make a copy of the script folder
-  - Change the config.js file for your other jive instance
-  - Execute the following node command 
-    node index.js
+
+## How to run the scrip for multiple instances
+To use this script for multiple jive instances and the same database table:
+ - Make a copy of the script folder
+ - Change the config.js file for your other jive instance
+ - Execute the following node command 
+   node index.js
     
-  To run the script on an interval/schedule such as daily/weekly, the script can be executed from crontab
+To run the script on an interval/schedule such as daily/weekly, the script can be executed from crontab
