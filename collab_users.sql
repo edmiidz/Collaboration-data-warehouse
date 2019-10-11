@@ -4,9 +4,9 @@ CREATE TABLE `collab_users` (
   `user_name` varchar(255) NOT NULL,
   `account_enabled` enum('FALSE','TRUE') NOT NULL DEFAULT 'TRUE',
   `account_type` enum('External Contributor','Standard') NOT NULL DEFAULT 'Standard',
-  `name` varchar(128) DEFAULT NULL,
-  `first_name` varchar(55) DEFAULT NULL,
-  `last_name` varchar(55) DEFAULT NULL,
+  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `first_name` varchar(55) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `last_name` varchar(55) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
   `email` varchar(128) NOT NULL,
   `last_logged_in` varchar(255) DEFAULT NULL,
   `member_since` varchar(55) DEFAULT NULL,
@@ -28,7 +28,8 @@ CREATE TABLE `collab_users` (
   `jive_federated` enum('FALSE','TRUE') NOT NULL DEFAULT 'TRUE',
   `jive_externalIdentities` text,
   `jive_instance` varchar(125) NOT NULL,
-  `last_fetched_from_api` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `last_fetched_from_api` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`,`jive_instance`)
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 

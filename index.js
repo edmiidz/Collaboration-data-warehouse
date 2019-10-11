@@ -18,7 +18,8 @@ var connection = mysql.createConnection({
     password : config.connection.password,
     database : config.connection.database,
     port     : config.connection.port,
-    multipleStatements: true
+    multipleStatements: true,
+    charset : 'utf8'
 });
 
 sync_users();
