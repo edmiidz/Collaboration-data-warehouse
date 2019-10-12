@@ -135,87 +135,72 @@ function getUserDbObject(person){
 function sync_users(){
 	var dt = new Date();
 	console.log('Cron Run at : ', dt);
-
 	var next_page = 'https://'+config.basicUrl + config.peopleApiUrl  + '?fields=name,emails,phoneNumbers,jive,location,initialLogin,profile,displayName&filter=include-disabled(true)&filter=include-external(true)&count='+count;
-    //console.log("next_page::", next_page);	
 	async.doWhilst(function (callback) {		
-		//console.log("next_page = ", next_page);
-		allUsers = [];
-        requestData(next_page).then(function(people) {
-            
-        	for(var i=0; i<people.list.length; i++){
-                if (!userExist(people.list[i].id)){
-                    var dbObj = getUserDbObject(people.list[i]);
-                    fullUserData.push(dbObj);
-                    allUsers.push(dbObj);
-                }    			
-        	}
-        	if(typeof people.links.next == 'undefined') {
-	            next_page = false;
-	        } else {
-	            next_page = people.links.next;
-	        }
-	        if (people.list.length < count){
-	        	next_page = false;
-	        }	        
-	        insert_update_users().then(function(result){             
-	        	callback(null, 'next_page');
-	        });	        
+		console.log('next_page = ', next_page)
+        requestData(next_page).then(function(people) {        	
+            async.eachSeries(people.list, function(person, callback_loop){
+            	if (!userExist(person.id)){
+                    var dbObj = getUserDbObject(person);
+                    fullUserData.push(person.id);                    
+                    insert_update_user(dbObj).then(function(result){
+						callback_loop(null, result);
+					});
+                }
+            }, 
+            function done(){
+            	if(typeof people.links.next == 'undefined') {
+	            	next_page = false;
+		        } else {
+		            next_page = people.links.next;
+		        }
+		        if (people.list.length < count){
+		        	next_page = false;
+		        }
+		        callback(null, 'next_page');
+            })
         }, function (error) {
         	console.log('Error getting user data');
-        });
-        
+        });   
     }, function () {
         return next_page !== false;
     }, function done() {	    
     	console.log('All users data received and saved');
-    	remove_duplicate_records();    	
-    	//d.resolve(true);
+    	remove_jive_deleted_users_from_db();
     });
 }
 
 
-function insert_update_users(){
+function insert_update_user(user){
 		var d = q.defer();
-        var fields = arrayKeys(allUsers[0]).join();
+        var fields = arrayKeys(user).join();
         var sql = "";
-        if (!newTableCreated){
-            // Delete the temp table, if the previous attempt could not be completed and it was not deleted
-            sql += "DROP TABLE IF EXISTS "+config.connection.table+"_temp; ";
-            // Create the temp table
-            sql += "CREATE TABLE "+config.connection.table+"_temp LIKE "+config.connection.table+ "; ";
-            newTableCreated = true;
-        }
-        sql += "INSERT INTO "+config.connection.table+"_temp ("+fields+") VALUES ";
+        sql += "INSERT INTO "+config.connection.table+" ("+fields+") VALUES ";
         var values = [];
-        for (var i =0; i<allUsers.length; i++){            
-            values.push("("+arrayValues(allUsers[i]).join()+")");
-        }
-        sql += values.join();
+            values.push("("+arrayValues(user).join()+")");
+	        sql += values.join();
+        
         var duplicateStr = [];
-
-        fields = arrayKeys(allUsers[0]);
+        fields = arrayKeys(user);
         for (var i=0; i<fields.length; i++){
             duplicateStr.push(fields[i]+"=VALUES("+fields[i]+")");
         }
         sql += " ON DUPLICATE KEY UPDATE "+duplicateStr.join();
 		connection.query(sql, function(err, result) {
 	      if (err) throw err;
+	      	console.log('user '+ user.email +' added to DB');
+	      	console.log('=================================');
 	      d.resolve(result);
 	    });
     	return d.promise;
 };
 
-function remove_duplicate_records(){
-		var sql  =  'INSERT INTO '+config.connection.table+'_temp SELECT * FROM '+config.connection.table+' WHERE jive_instance != "'+config.basicUrl+'";'
-            sql +=  'DROP TABLE IF EXISTS '+config.connection.table+'; ';
-			sql +=  'ALTER TABLE '+config.connection.table+'_temp RENAME TO '+config.connection.table;
-        //console.log(sql);
-
+function remove_jive_deleted_users_from_db(){
+		var sql = 'DELETE FROM '+config.connection.table+ ' WHERE jive_instance = "'+config.basicUrl+'" AND user_id NOT IN('+fullUserData.join()+');';
 		connection.query(sql, function(err, result) {
 	      if (err) throw err;
-	      console.log('duplicate check done')
-          process.exit();
+	      console.log('Removed the users those were removed from the Jive instance');
+	      process.exit();
 	    });
 }
 
@@ -274,10 +259,7 @@ function arrayValues(input) {
     return output; 
 }
 
-function userExist(id){    
-    if (fullUserData.map(function(e) { return e.jive_id; }).indexOf(id) != -1){
-        return true;
-    }
-    return false;
+function userExist(id){ 
+	return (fullUserData.indexOf(id) != -1)   
 }
 
