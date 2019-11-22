@@ -28,9 +28,9 @@ CREATE TABLE `collab_users` (
   `jive_federated` enum('FALSE','TRUE') NOT NULL DEFAULT 'TRUE',
   `jive_externalIdentities` text,
   `jive_instance` varchar(125) NOT NULL,
-  `last_fetched_from_api` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_fetched_from_api` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`,`jive_instance`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 
 
 ALTER TABLE `collab_users`
