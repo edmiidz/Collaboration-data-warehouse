@@ -31,7 +31,3 @@ CREATE TABLE `collab_users` (
   `last_fetched_from_api` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`user_id`,`jive_instance`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-
-ALTER TABLE `collab_users`
-  ADD PRIMARY KEY (`user_id`,`jive_instance`);
