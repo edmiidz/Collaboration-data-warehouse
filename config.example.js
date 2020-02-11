@@ -16,7 +16,7 @@ var jaconfig = {
     ja_basic_url     : 'https://api-aws.jivesoftware.com'
 };
 
-config.connection = {
+config.database = {
     host     : 'localhost',
     user     : 'root',
     password : 'root',
@@ -25,12 +25,13 @@ config.connection = {
 
 };
 
-
+config.basicAuth = 'Basic ' + new Buffer(config.username + ':' + config.password).toString('base64');
 config.tables = {
     collab_users            : 'collab_users',
     activity                : 'activity',
     scriptHealthDashboard   : 'scriptHealthDashboard'
 };
 
+config.instance = 1;
 module.exports = config;
 
