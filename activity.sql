@@ -34,3 +34,6 @@ CREATE TABLE `activity` (
   `upserted` datetime DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+ALTER TABLE `activity` ADD PRIMARY KEY( `activity_actionobject_name`, `actionobjectid`, `activitytime`, `activity_actor_username`);
+#ALTER TABLE `activity` DROP PRIMARY KEY;
+
