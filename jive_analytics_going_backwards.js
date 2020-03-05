@@ -35,29 +35,18 @@ jiveActivity();
 function jiveActivity()
 {
 
-        var query = "SELECT SUBSTRING(FROM_UNIXTIME(activitytime / 1000),1,10) AS before_date, DATE_ADD(SUBSTRING(FROM_UNIXTIME(activitytime / 1000),1,10), INTERVAL -1 DAY) AS after_date, `ActivityTime`, FROM_UNIXTIME(activitytime / 1000) minactivity FROM `activity` ORDER BY `ActivityTime` asc limit 1";
-        //var query = "SELECT `ActivityTime` FROM `activity` ORDER BY `ActivityTime` limit 1"; 
-        //var query = "SELECT NOW() - INTERVAL 199 DAY ActivityTime"; 
+        var query = "SELECT SUBSTRING(CONVERT_TZ(FROM_UNIXTIME(activitytime / 1000),'SYSTEM','+0:00'),1,10) AS before_date, DATE_ADD(SUBSTRING(CONVERT_TZ(FROM_UNIXTIME(activitytime / 1000),'SYSTEM','+0:00'),1,10), INTERVAL -1 DAY) AS after_date, `ActivityTime`, CONVERT_TZ(FROM_UNIXTIME(activitytime / 1000),'SYSTEM','+0:00') minactivity FROM `activity` ORDER BY `ActivityTime` asc limit 1";
         
         var maximum_rows = 0;
 
-console.log(query);
+        console.log(query);
 
         connection.query(query, (err,rows) => {
             if (!err) {
                 
                 var after_date = rows[0]['after_date'];
                 var before_date = rows[0]['before_date'];
-
-                // var after_date = '2020-02-06';
-                // var before_date = '2020-02-07';
-
-                // var current_date = dateFormat(new Date(), "%Y-%m-%d", true);
-                // var current_time = dateFormat(new Date(), "%H:%M:%S", true);
-                // var current = current_date + 'T' + current_time;
-
-
-            var next_page = config.ja_basic_url + "/analytics/v2/export/activity?after=" + after_date + "&before=" + before_date + "&filter=place(Information+Technology)&count=300";
+                var next_page = config.ja_basic_url + "/analytics/v2/export/activity?after=" + after_date + "&before=" + before_date + "&filter=place(Information+Technology)&count=300";
             
              console.log('Step 1 -> CHECK - next_page = ' + next_page);
             async.doWhilst(function (callback1) {
