@@ -10,9 +10,13 @@ var path    = require('path');
 const mysql = require('mysql');
 var os = require('os');
 
+var insert_one_by_one = true;
+
+
 
 if(os.type() != "Linux"){
-     config  = require('./config_test');
+     //config  = require('./config');
+	 config  = require('./config_test');
 } else {
     config  = require('./config');
 }
@@ -46,7 +50,7 @@ if(typeof process.argv.slice(2)[0] !== 'undefined') {
 
 function jiveActivity()
 {
-                
+	var maximum_rows = 0;				
     var querydayvalue = new Date(queryday); 
     var nextdayvalue = new Date(queryday); 
 
@@ -71,13 +75,14 @@ function jiveActivity()
 //console.log(data);
             var req = https.request(data, function(res) {
                 res.setEncoding('utf8');
+
                 var jive_ans = '';
 
                 res.on('data', function (chunk) {
                     jive_ans += chunk;
                 });
                 res.on('end', function() {
-                    
+						
 //console.log('jive_ans:' + jive_ans);
                     jive_ans = JSON.parse(jive_ans);
 
@@ -88,14 +93,17 @@ function jiveActivity()
                     } else {
                         console.log('jive_ans.list ' + jive_ans.list.length + ' records');
                         var queries = '';
+                        var queriesArr = [];
                         async.eachSeries(jive_ans.list, function iterator(rows_1, callback2) {
                             prepareJson(rows_1).then(function(row) {
                              //   console.log(row);   
                                 //process.exit();
-                                formatInsert(config.database.table, row).then(function (qry) {
-                                    queries += qry;
-                                    //console.log(qry);
-                                 //   console.log('=====================')
+                                formatInsert(config.database.table, row).then(function (qry) {                                    
+                                    if (insert_one_by_one){
+                                        queriesArr.push(qry);
+                                    }else{
+                                        queries += qry;    
+                                    }
                                     callback2(null, queries);
                                 });
                             }, function (error) {
@@ -103,17 +111,29 @@ function jiveActivity()
                                 throw error;
                             });
                         }, function done() {
-                            //process.exit();
-                            insertMultipleRows(queries).then(function(res1) {
-                                console.log("maximum_rows: " + maximum_rows);
-                                maximum_rows += 300;
-                                if(typeof jive_ans.paging.next == 'undefined' || maximum_rows >= 27000) {
-                                    next_page = false;
-                                } else {
-                                    next_page = jive_ans.paging.next;
-                                }
-                                callback1(null, next_page);
-                            });
+                            //Insert one by one if variable is true
+                            if (insert_one_by_one){
+                                insertRowsOneByOne(queriesArr).then(function(res1) {
+                                    maximum_rows += 100;
+                                    if(typeof jive_ans.paging.next == 'undefined' || maximum_rows >= 27000) {
+                                        next_page = false;
+                                    } else {
+                                        next_page = jive_ans.paging.next;
+                                    }
+                                    callback1(null, next_page);
+                                });
+                            }else{
+                                //Else bulk insert
+                                insertMultipleRows(queries).then(function(res1) {
+                                    maximum_rows += 100;
+                                    if(typeof jive_ans.paging.next == 'undefined' || maximum_rows >= 27000) {
+                                        next_page = false;
+                                    } else {
+                                        next_page = jive_ans.paging.next;
+                                    }
+                                    callback1(null, next_page);
+                                });
+                            }                            
                         });
                     }
 
@@ -187,6 +207,7 @@ function prepareJson(data, callback)
             newData.activity_actionobject_creationDate = data['activity']['actionObject']['creationDate'];
 
         }
+		//if(typeof data['activity']['actionObject']['subject'] !== 'undefined' && String(data['activity']['actionObject']['subject']).trim() != '')
         if(typeof data['activity']['actionObject']['subject'] !== 'undefined')
         {
             newData.activity_actionobject_subject = data['activity']['actionObject']['subject'];   
@@ -285,9 +306,11 @@ function formatInsert(table, data, callback)
 {
     var deferred = q.defer();
     
-    var query = "INSERT INTO " + table + " (";
+    var query = "INSERT IGNORE INTO " + table + " (";
     for( var key in data) {
-        query += key +" ,";
+		if (String(data[key]).trim() != ''){
+			query += key +" ,";
+		}
     }
     query = query.substr(0, query.length - 1) + ") VALUES (";
 
@@ -300,7 +323,9 @@ function formatInsert(table, data, callback)
             //}
         }
         //query += "'" + value + "',";
-        query += value + ' ,';
+		if (String(value).trim() != ''){
+			query += value + ' ,';
+		}
 
     }
     query = query.substr(0, query.length - 1) + ");";
@@ -310,17 +335,45 @@ function formatInsert(table, data, callback)
 function insertMultipleRows(queries, callback)
 {
     var deferred = q.defer();
-    //console.log(queries);
-    //var queries = connection.escape(queries)
+      console.log(queries);
     connection.query(queries, function(err, result) {
             if (err) {
                 console.log(err);
             } else {
                 deferred.resolve(result);
             }
-            deferred.resolve(result);
         });
     deferred.promise.nodeify(callback);
+    return deferred.promise;
+}
+
+
+function insertRowsOneByOne(queries, callback){
+    console.log('Number of records inserting one by one = ',queries.length);
+    var deferred = q.defer();
+    async.eachSeries(queries, function iterator(query, callback1) {
+        callback1(null, query);
+        insertSingleRow(query).then(function(row) {
+            callback1(null, query);
+        });
+        }, function done() {
+            //Insert one by one if variable is true
+            deferred.resolve('true');           
+        });
+    return deferred.promise; 
+}
+
+function insertSingleRow(query, callback){
+    var deferred = q.defer();
+    console.log(query);
+    console.log('--------------------');
+    connection.query(query, function(err, result) {
+            if (err) {
+                console.log(err);
+            } else {
+                deferred.resolve(result);
+            }
+        });
     return deferred.promise;
 }
 
