@@ -12,11 +12,12 @@ var os = require('os');
 
 var insert_one_by_one = true;
 
+var placename = "Information Technology & Communication";
 
+var placenameuri = encodeURIComponent(placename).replace(/%20/g, '+');
 
 if(os.type() != "Linux"){
-     //config  = require('./config');
-	 config  = require('./config_test');
+     config  = require('./config_test');
 } else {
     config  = require('./config');
 }
@@ -58,7 +59,7 @@ function jiveActivity()
     nextdayvalue.setDate(querydayvalue.getDate() + 1); // Next Day!
     var before_date = nextdayvalue.toISOString().substr(0,10);
 
-    var next_page = config.ja_basic_url + "/analytics/v2/export/activity?after=" + after_date + "&before=" + before_date + "&filter=place(Information+Technology)&count=300";            
+	var next_page = config.ja_basic_url + "/analytics/v2/export/activity?after=" + after_date + "&before=" + before_date + "&filter=place(" + placenameuri + ")&count=300";  
     
     console.log('Step 1 -> CHECK - next_page = ' + next_page);
     async.doWhilst(function (callback1) {

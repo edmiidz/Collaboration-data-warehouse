@@ -10,6 +10,11 @@ var path    = require('path');
 const mysql = require('mysql');
 var os = require('os');
 
+var insert_one_by_one = false;
+
+var placename = "Information Technology & Communication";
+
+var placenameuri = encodeURIComponent(placename).replace(/%20/g, '+');
 
 if(os.type() != "Linux"){
      config  = require('./config_test');
@@ -35,7 +40,7 @@ jiveActivity();
 function jiveActivity()
 {
 
-        var query = "SELECT SUBSTRING(CONVERT_TZ(FROM_UNIXTIME(activitytime / 1000),'SYSTEM','+0:00'),1,10) AS before_date, DATE_ADD(SUBSTRING(CONVERT_TZ(FROM_UNIXTIME(activitytime / 1000),'SYSTEM','+0:00'),1,10), INTERVAL -1 DAY) AS after_date, `ActivityTime`, CONVERT_TZ(FROM_UNIXTIME(activitytime / 1000),'SYSTEM','+0:00') minactivity FROM `activity` ORDER BY `ActivityTime` asc limit 1";
+        var query = "SELECT SUBSTRING(CONVERT_TZ(FROM_UNIXTIME(activitytime / 1000),'SYSTEM','+0:00'),1,10) AS before_date, DATE_ADD(SUBSTRING(CONVERT_TZ(FROM_UNIXTIME(activitytime / 1000),'SYSTEM','+0:00'),1,10), INTERVAL -333 DAY) AS after_date, `ActivityTime`, CONVERT_TZ(FROM_UNIXTIME(activitytime / 1000),'SYSTEM','+0:00') minactivity FROM `activity` WHERE activity_destination_name = '" + placename + "' ORDER BY `ActivityTime` asc limit 1";
         
         var maximum_rows = 0;
 
@@ -46,7 +51,8 @@ function jiveActivity()
                 
                 var after_date = rows[0]['after_date'];
                 var before_date = rows[0]['before_date'];
-                var next_page = config.ja_basic_url + "/analytics/v2/export/activity?after=" + after_date + "&before=" + before_date + "&filter=place(Information+Technology)&count=300";
+               // var next_page = config.ja_basic_url + "/analytics/v2/export/activity?after=" + after_date + "&before=" + before_date + "&filter=place(Information+Technology)&count=300";
+				       var next_page = config.ja_basic_url + "/analytics/v2/export/activity?after=" + after_date + "&before=" + before_date + "&filter=place(" + placenameuri + ")&count=300";  
             
              console.log('Step 1 -> CHECK - next_page = ' + next_page);
             async.doWhilst(function (callback1) {
@@ -77,13 +83,17 @@ function jiveActivity()
                 				} else {
                                     console.log('jive_ans.list ' + jive_ans.list.length + 'records');
                                     var queries = '';
+                                    var queriesArr = [];
                                     async.eachSeries(jive_ans.list, function iterator(rows_1, callback2) {
                                         prepareJson(rows_1).then(function(row) {
                                             //console.log(row);   
                                             //process.exit();
                                             formatInsert(config.database.table, row).then(function (qry) {
-                                                queries += qry;
-                                                //console.log(qry);
+                                                if (insert_one_by_one){
+                                                    queriesArr.push(qry);
+                                                }else{
+                                                    queries += qry;    
+                                                }
                                                 //console.log('=====================')
                                                 callback2(null, queries);
                                             });
@@ -92,6 +102,18 @@ function jiveActivity()
                                             throw error;
                                         });
                                     }, function done() {
+                                        //Insert one by one if variable is true
+                                        if (insert_one_by_one){
+                                            insertRowsOneByOne(queriesArr).then(function(res1) {
+                                                maximum_rows += 100;
+                                                if(typeof jive_ans.paging.next == 'undefined' || maximum_rows >= 27000) {
+                                                    next_page = false;
+                                                } else {
+                                                    next_page = jive_ans.paging.next;
+                                                }
+                                                callback1(null, next_page);
+                                            });
+                                        }else{
                                         //process.exit();
                                         insertMultipleRows(queries).then(function(res1) {
                                             //console.log(maximum_rows);
@@ -102,7 +124,8 @@ function jiveActivity()
                                                 next_page = jive_ans.paging.next;
                                             }
                                             callback1(null, next_page);
-                                        });
+                                });
+                            }                            
                                     });
                                 }
 
@@ -277,9 +300,11 @@ function formatInsert(table, data, callback)
 {
     var deferred = q.defer();
     
-    var query = "INSERT INTO " + table + " (";
+    var query = "INSERT IGNORE INTO " + table + " (";
     for( var key in data) {
-        query += key +" ,";
+		if (String(data[key]).trim() != ''){
+			query += key +" ,";
+		}
     }
     query = query.substr(0, query.length - 1) + ") VALUES (";
 
@@ -292,7 +317,9 @@ function formatInsert(table, data, callback)
             //}
         }
         //query += "'" + value + "',";
-        query += value + ' ,';
+		if (String(value).trim() != ''){
+			query += value + ' ,';
+		}
 
     }
     query = query.substr(0, query.length - 1) + ");";
@@ -316,29 +343,32 @@ function insertMultipleRows(queries, callback)
     return deferred.promise;
 }
 
-function insert_redshift(table, data, callback)
-{
+function insertRowsOneByOne(queries, callback){
+    console.log('Number of records inserting one by one = ',queries.length);
     var deferred = q.defer();
-    var query = "INSERT INTO " + table + " (";
-    for( var key in data) {
-        query += key +",";
-    }
-    query = query.substr(0, query.length - 1) + ") VALUES (";
-    
-    for(var key1 in data) {
-        query += "'" + data[key1] + "',";
-    }
-    query = query.substr(0, query.length - 1) + ")";
-    rssql(query, function(err, result) {            
+    async.eachSeries(queries, function iterator(query, callback1) {
+        callback1(null, query);
+        insertSingleRow(query).then(function(row) {
+            callback1(null, query);
+        });
+        }, function done() {
+            //Insert one by one if variable is true
+            deferred.resolve('true');           
+        });
+    return deferred.promise; 
+}
+
+function insertSingleRow(query, callback){
+    var deferred = q.defer();
+    console.log(query);
+    console.log('--------------------');
+    connection.query(query, function(err, result) {
             if (err) {
                 console.log(err);
-                console.log(query);
             } else {
                 deferred.resolve(result);
             }
-            deferred.resolve(result);
         });
-    deferred.promise.nodeify(callback);
     return deferred.promise;
 }
 
